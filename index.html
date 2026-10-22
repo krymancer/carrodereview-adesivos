@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora – Adesivos Carro de Review</title>
+<link rel="icon" href="assets/icon.svg">
+<style>
+  :root {
+    --bg: #f6f6f8; --card: #fff; --text: #1b1b20; --muted: #6b6b76; --line: #e3e3e8;
+    --accent: #4f46e5; --accent-soft: #eef0ff; --warn: #fff6db; --warn-line: #f0d47a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121216; --card: #1c1c22; --text: #ececf1; --muted: #9a9aa6; --line: #2e2e36;
+      --accent: #8b85ff; --accent-soft: #26244a; --warn: #3a3218; --warn-line: #6b5a22;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); padding-bottom: 120px; }
+  main { max-width: 760px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 22px; margin: 8px 0 2px; }
+  h2 { font-size: 16px; margin: 0 0 10px; }
+  .sub { color: var(--muted); margin: 0 0 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+  .warn { background: var(--warn); border-color: var(--warn-line); }
+  input[type=search], input[type=number], input[type=text] {
+    font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%;
+  }
+  button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: inherit; padding: 6px 12px; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.link { border: 0; background: none; color: var(--accent); padding: 0; }
+  .group { border-top: 1px solid var(--line); padding: 10px 0; }
+  .group:first-child { border-top: 0; }
+  .group-title { font-weight: 600; margin-bottom: 6px; }
+  .item { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
+  .item .name { flex: 1; }
+  .thumb { width: 72px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); cursor: zoom-in; flex-shrink: 0; background: var(--bg); }
+  .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 10; cursor: zoom-out; }
+  .lightbox img { max-width: 100%; max-height: 100%; border-radius: 10px; }
+  .qr { width: 180px; display: block; margin: 0 0 10px; border-radius: 8px; background: #fff; }
+  .item.has { color: var(--accent); font-weight: 600; }
+  .tag { font-size: 11px; padding: 1px 6px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); margin-left: 4px; font-weight: 500; }
+  .stepper { display: flex; align-items: center; gap: 4px; }
+  .stepper button { width: 34px; height: 34px; padding: 0; font-size: 18px; }
+  .stepper input { width: 46px; text-align: center; padding: 6px 2px; }
+  .tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 10px; }
+  .tables h3 { font-size: 14px; margin: 0 0 6px; }
+  .tables table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .tables td { padding: 2px 0; border-bottom: 1px solid var(--line); }
+  .tables td:last-child { text-align: right; }
+  .breakdown { margin: 0; padding: 0; list-style: none; }
+  .breakdown li { display: flex; justify-content: space-between; padding: 3px 0; }
+  .breakdown li.total { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 8px; font-weight: 700; font-size: 17px; }
+  textarea { width: 100%; min-height: 140px; font: 13px/1.4 ui-monospace, monospace; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line); padding: 12px 16px; }
+  .bar-inner { max-width: 760px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+  .bar .total { font-size: 22px; font-weight: 700; flex: 1; }
+  .bar .count { color: var(--muted); font-size: 13px; font-weight: 400; display: block; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .muted { color: var(--muted); font-size: 13px; }
+  details > summary { cursor: pointer; font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Adesivos Carro de Review</h1>
+  <p class="sub">Escolha as quantidades e o total é calculado na hora. Frete já incluso para todo o Brasil.</p>
+
+  <div id="tip" class="card warn" hidden></div>
+
+  <div class="card">
+    <input type="search" id="search" placeholder="Buscar adesivo (ex: 3T, lentos, mini)…">
+    <div class="row" style="margin-top:8px">
+      <label><input type="checkbox" id="onlySelected"> Mostrar só os escolhidos</label>
+      <span style="flex:1"></span>
+      <button onclick="clearAll()">Limpar tudo</button>
+    </div>
+  </div>
+
+  <div class="card" id="list"></div>
+
+  <div class="card">
+    <h2>Resumo</h2>
+    <ul class="breakdown" id="breakdown"></ul>
+  </div>
+
+  <div class="card">
+    <h2>Texto para o formulário</h2>
+    <p class="muted">Marque os adesivos no formulário e cole isto no campo “QUANTIDADE”:</p>
+    <textarea id="summary" readonly></textarea>
+    <div class="row" style="margin:8px 0 14px">
+      <button class="primary" onclick="copyText(document.getElementById('summary').value, this)">Copiar quantidades</button>
+    </div>
+    <p class="muted">E isto no campo “OBSERVAÇÕES” (qual pacote foi escolhido):</p>
+    <textarea id="obs" readonly style="min-height:70px"></textarea>
+    <div class="row" style="margin-top:8px">
+      <button class="primary" onclick="copyText(document.getElementById('obs').value, this)">Copiar observações</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>PIX</h2>
+    <img class="qr" src="assets/pix-qr.jpg" alt="QR code PIX" onclick="zoom(this.src)">
+    <div class="row" style="margin-bottom:6px"><code>CARRODEREVIEW@GMAIL.COM</code> <button onclick="copyText('carrodereview@gmail.com', this)">Copiar</button></div>
+    <div class="row"><code>UNOSTRISTES@GMAIL.COM</code> <button onclick="copyText('unostristes@gmail.com', this)">Copiar</button></div>
+    <p class="muted">Se esgotar o holográfico, será enviado um normal e vice-versa.</p>
+  </div>
+
+  <details class="card">
+    <summary>Tabela de preços</summary>
+    <div id="priceTable"></div>
+    <div class="row" style="margin-top:10px">
+      <img class="thumb" style="width:90px;height:112px" src="assets/tabela-grandes.jpg" alt="Tabela grandes" onclick="zoom(this.src)">
+      <img class="thumb" style="width:90px;height:112px" src="assets/tabela-mini.jpg" alt="Tabela mini" onclick="zoom(this.src)">
+      <img class="thumb" style="width:90px;height:112px" src="assets/tabela-pacotes.jpg" alt="Tabela pacotes" onclick="zoom(this.src)">
+    </div>
+  </details>
+</main>
+
+<div class="bar">
+  <div class="bar-inner">
+    <div class="total"><span id="barTotal">R$ 0,00</span><span class="count" id="barCount">nenhum adesivo</span></div>
+    <button class="primary" onclick="copyText(document.getElementById('summary').value, this)">Copiar pedido</button>
+  </div>
+</div>
+
+<script>
+const ITEMS = [
+  "3T HOLOGRÁFICO (tristeza a bordo)",
+  "3T HOLOGRÁFICO MINI (tristeza a bordo)",
+  "3T METALIZADO (tristeza a bordo)",
+  "3T METALIZADO MINI (tristeza a bordo)",
+  "9FF HOLOGRÁFICO (pilotado por mim, guiado pelo braia)",
+  "9FF HOLOGRÁFICO MINI (pilotado por mim, guiado pelo braia)",
+  "9FF METALIZADO (pilotado por mim, guiado pelo braia)",
+  "9FF METALIZADO MINI (pilotado por mim, guiado pelo braia)",
+  "13F METALIZADO (depressivos racing team)",
+  "13F METALIZADO MINI (depressivos racing team)",
+  "14E MINI HOLOGRÁFICO (não me siga, estou perdidasso)",
+  "14E METALIZADO (não me siga, estou perdidasso)",
+  "14E METALIZADO MINI (não me siga, estou perdidasso)",
+  "17E HOLOGRÁFICO (0 a 100: eventualmente)",
+  "17E HOLOGRÁFICO MINI (0 a 100: eventualmente)",
+  "17E METALIZADO (0 a 100: eventualmente)",
+  "17E METALIZADO MINI (0 a 100: eventualmente)",
+  "18C HOLOGRÁFICO (1.0boys)",
+  "18C HOLOGRÁFICO MINI (1.0boys)",
+  "18C METALIZADO (1.0boys)",
+  "18C METALIZADO MINI (1.0boys)",
+  "19B HOLOGRÁFICO (powerd by bomba nuclear)",
+  "19B HOLOGRÁFICO MINI (powerd by bomba nuclear)",
+  "19B METALIZADO (powerd by bomba nuclear)",
+  "19B METALIZADO MINI (powerd by bomba nuclear)",
+  "21B HOLOGRÁFICO (soviet riders)",
+  "21B HOLOGRÁFICO MINI (soviet riders)",
+  "21B METALIZADO (soviet riders)",
+  "21B METALIZADO MINI (soviet riders)",
+  "23C HOLOGRÁFICO (original gang)",
+  "23C HOLOGRÁFICO MINI (original gang)",
+  "23C METALIZADO (original gang)",
+  "23C METALIZADO MINI (original gang)",
+  "25B HOLOGRÁFICO (aliados do guincho)",
+  "25B HOLOGRÁFICO MINI (aliados do guincho)",
+  "25B METALIZADO (aliados do guincho)",
+  "25B METALIZADO MINI (aliados do guincho)",
+  "26B HOLOGRÁFICO (miopiadrivers)",
+  "26B MINI HOLOGRÁFICO (miopiadrivers)",
+  "26B METALIZADO (miopiadrivers)",
+  "26B METALIZADO MINI (miopiadrivers)",
+  "27B METALIZADO (lentos club)",
+  "27C HOLOGRÁFICO (lentos club)",
+  "27C HOLOGRÁFICO MINI (lentos club)",
+  "27C METALIZADO (lentos club)",
+  "27C METALIZADO MINI (lentos club)",
+  "28B METALIZADO (inimigos do acelero)",
+  "28C HOLOGRÁFICO (inimigos do acelero)",
+  "28C HOLOGRÁFICO MINI (inimigos do acelero)",
+  "28C METALIZADO (inimigos do acelero)",
+  "28C METALIZADO MINI (inimigos do acelero)",
+  "29 METALIZADO (orgulho do detran)",
+  "29B HOLOGRÁFICO (orgulho do detran)",
+  "29B HOLOGRÁFICO MINI (orgulho do detran)",
+  "29B METALIZADO (orgulho do detran)",
+  "29B METALIZADO MINI (orgulho do detran)",
+  "CARTA ALEATÓRIA (6 ADESIVOS ALEATÓRIOS)",
+  "CARTA ALEATÓRIA MINI (10 ADESIVOS MINIS ALEATÓRIOS)",
+  "CARTA BRANCA (5 ADESIVOS COM DEFEITOS ALEATÓRIOS)",
+];
+
+// ---------- prices (from the form's price tables; holográfico and metalizado cost the same) ----------
+const BIG_TIERS = { 1: 22, 2: 30, 3: 38, 4: 43, 5: 50, 6: 60, 7: 70, 8: 80 };
+const BIG_EXTRA = 10; // "8 = R$ 80…": from 9 on, R$ 10 per big sticker
+const MINI_TIERS = { 3: 20, 5: 23, 7: 26, 10: 32, 12: 34, 15: 37, 20: 42, 25: 45, 30: 50 };
+const COMBOS = [ // big + mini packages
+  { g: 1, m: 1, price: 26 }, { g: 2, m: 3, price: 38 }, { g: 3, m: 5, price: 46 },
+  { g: 4, m: 7, price: 54 }, { g: 5, m: 10, price: 65 }, { g: 7, m: 15, price: 87 },
+  { g: 10, m: 20, price: 100 },
+];
+const CARTAS = {
+  carta: { label: "Pacote aleatório (6 adesivos)", price: 48 },
+  cartaMini: { label: "Pacote aleatório mini (10 minis)", price: 28 },
+  cartaBranca: { label: "Pacote branco (5 com defeito)", price: 32 },
+};
+
+function categoryOf(name) {
+  if (name.startsWith("CARTA ALEATÓRIA MINI")) return "cartaMini";
+  if (name.startsWith("CARTA ALEATÓRIA")) return "carta";
+  if (name.startsWith("CARTA BRANCA")) return "cartaBranca";
+  return /\bMINI\b/.test(name.split("(")[0]) ? "mini" : "big";
+}
+
+// photo for each item, in the same order as ITEMS (from the form)
+const PNG = new Set([21, 22, 23, 24, 25, 29, 30, 31, 32]);
+const photo = i => `assets/stickers/${String(i).padStart(2, "0")}.${PNG.has(i) ? "png" : "jpg"}`;
+
+const products = ITEMS.map((name, i) => {
+  const m = name.match(/\(([^)]*)\)/);
+  const cat = categoryOf(name);
+  return { id: i, name, cat, group: CARTAS[cat] ? "Pacotes aleatórios" : (m ? m[1] : name) };
+});
+
+const STORE = "carroDeReview.qty.v1";
+let qty = {};
+try { qty = JSON.parse(localStorage.getItem(STORE)) || {}; } catch {}
+const save = () => localStorage.setItem(STORE, JSON.stringify(qty));
+
+const brl = v => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
+// ---------- pricing ----------
+// Big stickers: price table, R$ 10 each above 8.
+const bigCost = n => n === 0 ? 0 : BIG_TIERS[n] ?? n * BIG_EXTRA;
+
+// Mini stickers only come in table sizes. Cheapest mix of tiers that covers at least n
+// (e.g. 4 minis → pay for 5; you can pick 1 more for free).
+function miniPlan(n) {
+  const sizes = Object.keys(MINI_TIERS).map(Number);
+  const max = n + Math.max(...sizes);
+  const best = new Array(max + 1).fill(Infinity), pick = new Array(max + 1).fill(0);
+  best[0] = 0;
+  for (let k = 1; k <= max; k++) for (const s of sizes)
+    if (s <= k && best[k - s] + MINI_TIERS[s] < best[k]) { best[k] = best[k - s] + MINI_TIERS[s]; pick[k] = s; }
+  let k = n;
+  for (let j = n; j <= max; j++) if (best[j] < best[k]) k = j;
+  const tiers = [];
+  for (let j = k; j > 0; j -= pick[j]) tiers.push(pick[j]);
+  return { cost: best[k], covers: k, tiers };
+}
+
+// Cheapest way to cover G big + M mini, mixing combo packages with big/mini tables.
+function plan(G, M) {
+  const memo = new Map();
+  function f(g, m) {
+    const key = g + "," + m;
+    if (memo.has(key)) return memo.get(key);
+    const mp = miniPlan(m);
+    let best = { cost: bigCost(g) + mp.cost, combos: [], g, mini: mp };
+    for (const c of COMBOS) {
+      if (g === 0 && m === 0) break;
+      const rest = f(Math.max(0, g - c.g), Math.max(0, m - c.m));
+      if (rest.cost + c.price < best.cost) best = { ...rest, cost: rest.cost + c.price, combos: [c, ...rest.combos] };
+    }
+    memo.set(key, best);
+    return best;
+  }
+  return f(G, M);
+}
+
+function compute() {
+  let G = 0, M = 0, cartasTotal = 0;
+  const lines = [];
+  for (const p of products) {
+    const q = qty[p.id] || 0;
+    if (!q) continue;
+    if (p.cat === "big") G += q;
+    else if (p.cat === "mini") M += q;
+    else { cartasTotal += q * CARTAS[p.cat].price; lines.push([`${q}× ${CARTAS[p.cat].label}`, q * CARTAS[p.cat].price]); }
+  }
+  const r = plan(G, M);
+  const comboLines = [];
+  for (const c of r.combos) comboLines.push([`Pacote ${plural(c.g, "grande", "grandes")} + ${c.m} mini`, c.price]);
+  if (r.g) comboLines.push([`${plural(r.g, "adesivo grande", "adesivos grandes")}`, bigCost(r.g)]);
+  for (const t of r.mini.tiers) comboLines.push([`${t} adesivos mini`, MINI_TIERS[t]]);
+  const coveredG = r.combos.reduce((s, c) => s + c.g, 0) + r.g;
+  const coveredM = r.combos.reduce((s, c) => s + c.m, 0) + r.mini.covers;
+  return {
+    total: r.cost + cartasTotal, lines: [...comboLines, ...lines],
+    G, M, freeG: coveredG - G, freeM: coveredM - M,
+  };
+}
+
+// ---------- rendering ----------
+function renderList() {
+  const q = document.getElementById("search").value.trim().toLowerCase();
+  const only = document.getElementById("onlySelected").checked;
+  const groups = new Map();
+  for (const p of products) {
+    if (q && !p.name.toLowerCase().includes(q)) continue;
+    if (only && !qty[p.id]) continue;
+    if (!groups.has(p.group)) groups.set(p.group, []);
+    groups.get(p.group).push(p);
+  }
+  const list = document.getElementById("list");
+  if (!groups.size) { list.innerHTML = `<p class="muted">Nada encontrado.</p>`; return; }
+  list.innerHTML = [...groups].map(([title, items]) => `
+    <div class="group">
+      <div class="group-title">${title}</div>
+      ${items.map(p => `
+        <div class="item" data-id="${p.id}">
+          <img class="thumb" src="${photo(p.id)}" alt="" loading="lazy">
+          <span class="name">${CARTAS[p.cat] ? `${CARTAS[p.cat].label} <span class="tag">${brl(CARTAS[p.cat].price)}</span>` : p.name.split(" (")[0]}</span>
+          <span class="stepper">
+            <button data-d="-1" aria-label="menos">−</button>
+            <input type="number" min="0" inputmode="numeric" value="0">
+            <button data-d="1" aria-label="mais">+</button>
+          </span>
+        </div>`).join("")}
+    </div>`).join("");
+  renderTotals();
+}
+
+function setQty(id, v) {
+  v = Math.max(0, Math.floor(Number(v) || 0));
+  if (v) qty[id] = v; else delete qty[id];
+  save();
+}
+
+function renderTotals() {
+  const r = compute();
+  document.getElementById("barTotal").textContent = brl(r.total);
+  const parts = [r.G && plural(r.G, "grande", "grandes"), r.M && `${r.M} mini`].filter(Boolean);
+  document.getElementById("barCount").textContent = parts.length || r.lines.length ? parts.join(" + ") || "pacotes aleatórios" : "nenhum adesivo";
+  document.getElementById("breakdown").innerHTML = r.lines.length
+    ? r.lines.map(([l, v]) => `<li><span>${l}</span><span>${brl(v)}</span></li>`).join("") + `<li class="total"><span>Total</span><span>${brl(r.total)}</span></li>`
+    : `<li class="muted">Nenhum adesivo escolhido ainda.</li>`;
+
+  const tips = [];
+  if (r.freeG) tips.push(`mais ${plural(r.freeG, "adesivo grande", "adesivos grandes")}`);
+  if (r.freeM) tips.push(`mais ${r.freeM} mini`);
+  const tip = document.getElementById("tip");
+  tip.hidden = !tips.length;
+  tip.innerHTML = tips.length ? `<strong>Dica:</strong> pelo mesmo preço você ainda pode escolher ${tips.join(" e ")}.` : "";
+
+  const chosen = products.filter(p => qty[p.id]);
+  document.getElementById("summary").value = chosen.map(p => `${qty[p.id]}x ${p.name}`).join("\n");
+  document.getElementById("obs").value = r.lines.length
+    ? r.lines.map(([l, v]) => `${l} = ${brl(v)}`).join("\n") + `\nTOTAL: ${brl(r.total)}`
+    : "";
+  document.querySelectorAll(".item").forEach(el => {
+    const id = el.dataset.id;
+    el.classList.toggle("has", !!qty[id]);
+    const inp = el.querySelector("input");
+    if (document.activeElement !== inp) inp.value = qty[id] || 0;
+  });
+}
+
+function renderPriceTable() {
+  const rows = obj => Object.entries(obj).map(([k, v]) => `<tr><td>${k}</td><td>${brl(v)}</td></tr>`).join("");
+  document.getElementById("priceTable").innerHTML = `<div class="tables">
+    <div><h3>Grandes</h3><table>${rows(BIG_TIERS)}<tr><td>9 ou mais</td><td>${brl(BIG_EXTRA)} cada</td></tr></table></div>
+    <div><h3>Mini</h3><table>${rows(MINI_TIERS)}</table></div>
+    <div><h3>Pacotes grandes + mini</h3><table>${COMBOS.map(c => `<tr><td>${c.g} + ${c.m} mini</td><td>${brl(c.price)}</td></tr>`).join("")}</table></div>
+    <div><h3>Pacotes aleatórios</h3><table>${Object.values(CARTAS).map(c => `<tr><td>${c.label}</td><td>${brl(c.price)}</td></tr>`).join("")}</table></div>
+  </div><p class="muted">Holográfico e metalizado têm o mesmo preço. Frete já incluso.</p>`;
+}
+
+// ---------- events ----------
+const list = document.getElementById("list");
+list.addEventListener("click", e => {
+  const b = e.target.closest("button[data-d]"); if (!b) return;
+  const id = b.closest(".item").dataset.id;
+  setQty(id, (qty[id] || 0) + Number(b.dataset.d));
+  renderTotals();
+});
+list.addEventListener("input", e => {
+  if (e.target.matches("input")) { setQty(e.target.closest(".item").dataset.id, e.target.value); renderTotals(); }
+});
+list.addEventListener("click", e => { if (e.target.matches(".thumb")) zoom(e.target.src); });
+function zoom(src) {
+  const box = document.createElement("div");
+  box.className = "lightbox";
+  box.innerHTML = `<img src="${src}" alt="">`;
+  box.onclick = () => box.remove();
+  document.body.append(box);
+}
+list.addEventListener("focusin", e => { if (e.target.matches("input")) e.target.select(); });
+document.getElementById("search").addEventListener("input", renderList);
+document.getElementById("onlySelected").addEventListener("change", renderList);
+
+function clearAll() { if (confirm("Zerar todas as quantidades?")) { qty = {}; save(); renderList(); } }
+
+async function copyText(text, btn) {
+  if (!text) return;
+  try { await navigator.clipboard.writeText(text); }
+  catch { const t = document.createElement("textarea"); t.value = text; document.body.append(t); t.select(); document.execCommand("copy"); t.remove(); }
+  const old = btn.textContent; btn.textContent = "Copiado!"; setTimeout(() => btn.textContent = old, 1200);
+}
+
+renderPriceTable();
+renderList();
+</script>
+</body>
+</html>
