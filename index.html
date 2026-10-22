@@ -333,6 +333,7 @@ function renderTotals() {
   document.getElementById("barCount").textContent = parts.length || r.lines.length ? parts.join(" + ") || "pacotes aleatórios" : "nenhum adesivo";
   document.getElementById("breakdown").innerHTML = r.lines.length
     ? r.lines.map(([l, v]) => `<li><span>${l}</span><span>${brl(v)}</span></li>`).join("") + `<li class="total"><span>Total</span><span>${brl(r.total)}</span></li>`
+      + (r.freeG || r.freeM ? `<li class="muted">Você escolheu ${[r.G && plural(r.G, "grande", "grandes"), r.M && `${r.M} mini`].filter(Boolean).join(" + ")}. O pacote dá direito a mais ${[r.freeG && plural(r.freeG, "grande", "grandes"), r.freeM && `${r.freeM} mini`].filter(Boolean).join(" e ")} sem pagar a mais — escolha na lista para não perder.</li>` : "")
     : `<li class="muted">Nenhum adesivo escolhido ainda.</li>`;
 
   const tips = [];
@@ -344,8 +345,12 @@ function renderTotals() {
 
   const chosen = products.filter(p => qty[p.id]);
   document.getElementById("summary").value = chosen.map(p => `${qty[p.id]}x ${p.name}`).join("\n");
+  const picked = [r.G && plural(r.G, "grande", "grandes"), r.M && `${r.M} mini`].filter(Boolean).join(" + ");
   document.getElementById("obs").value = r.lines.length
-    ? r.lines.map(([l, v]) => `${l} = ${brl(v)}`).join("\n") + `\nTOTAL: ${brl(r.total)}`
+    ? r.lines.map(([l, v]) => `${l} = ${brl(v)}`).join("\n")
+      + (picked ? `\nEscolhidos: ${picked}` : "")
+      + (tips.length ? ` (ainda tenho direito a ${tips.join(" e ")})` : "")
+      + `\nTOTAL: ${brl(r.total)}`
     : "";
   document.querySelectorAll(".item").forEach(el => {
     const id = el.dataset.id;
